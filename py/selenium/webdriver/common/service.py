@@ -32,8 +32,9 @@ from urllib.error import URLError
 from selenium.common.exceptions import WebDriverException
 from selenium.types import SubprocessStdAlias
 from selenium.webdriver.common import utils
+from selenium.webdriver.common.selenium_manager import SeleniumManager
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 _HAS_NATIVE_DEVNULL = True
@@ -89,33 +90,21 @@ class Service(ABC):
         try:
             cmd = [self.path]
             cmd.extend(self.command_line_args())
-            self.process = subprocess.Popen(
-                cmd,
-                env=self.env,
-                close_fds=system() != "Windows",
-                stdout=self.log_file,
-                stderr=self.log_file,
-                stdin=PIPE,
-                creationflags=self.creation_flags,
-            )
-            log.debug(f"Started executable: `{self.path}` in a child process with pid: {self.process.pid}")
-        except TypeError:
-            raise
-        except OSError as err:
-            if err.errno == errno.ENOENT:
-                raise WebDriverException(
-                    f"'{os.path.basename(self.path)}' executable needs to be in PATH. {self.start_error_message}"
-                )
-            elif err.errno == errno.EACCES:
-                raise WebDriverException(
-                    f"'{os.path.basename(self.path)}' executable may have wrong permissions. {self.start_error_message}"
-                )
-            else:
-                raise
-        except Exception as e:
-            raise WebDriverException(
-                f"The executable {os.path.basename(self.path)} needs to be available in the path. {self.start_error_message}\n{str(e)}"
-            )
+            self._start_process(cmd)
+        except WebDriverException as err:
+            if "executable needs to be in PATH" in err.msg:
+                logger.info("driver not found in PATH, trying Selenium Manager")
+                browser = self.__class__.__module__.split(".")[-2]
+                try:
+                    path = SeleniumManager.driver_location(browser)
+                except OSError as new_err:
+                    if new_err.errno == errno.ENOENT:
+                        raise err
+                    else:
+                        raise new_err
+
+                self._start_process([path])
+
         count = 0
         while True:
             self.assert_process_still_running()
@@ -183,7 +172,7 @@ class Service(ABC):
             # Todo: only SIGKILL if necessary; the process may be cleanly exited by now.
             self.process.kill()
         except OSError:
-            log.error("Error terminating service process.", exc_info=True)
+            logger.error("Error terminating service process.", exc_info=True)
 
     def __del__(self) -> None:
         # `subprocess.Popen` doesn't send signal on `__del__`;
@@ -191,3 +180,38 @@ class Service(ABC):
         # is triggered.
         with contextlib.suppress(Exception):
             self.stop()
+
+    def _start_process(self, cmd: typing.List[str]) -> None:
+        """
+        Creates a subprocess by executing the command provided.
+
+        :param cmd: full command to execute
+        """
+        try:
+            self.process = subprocess.Popen(
+                cmd,
+                env=self.env,
+                close_fds=system() != "Windows",
+                stdout=self.log_file,
+                stderr=self.log_file,
+                stdin=PIPE,
+                creationflags=self.creation_flags,
+            )
+            logger.debug(f"Started executable: `{self.path}` in a child process with pid: {self.process.pid}")
+        except TypeError:
+            raise
+        except OSError as err:
+            if err.errno == errno.ENOENT:
+                raise WebDriverException(
+                    f"'{os.path.basename(self.path)}' executable needs to be in PATH. {self.start_error_message}"
+                )
+            elif err.errno == errno.EACCES:
+                raise WebDriverException(
+                    f"'{os.path.basename(self.path)}' executable may have wrong permissions. {self.start_error_message}"
+                )
+            else:
+                raise
+        except Exception as e:
+            raise WebDriverException(
+                f"The executable {os.path.basename(self.path)} needs to be available in the path. {self.start_error_message}\n{str(e)}"
+            )

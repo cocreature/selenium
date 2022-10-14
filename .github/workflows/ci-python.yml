@@ -142,8 +142,8 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: '11'
-      - name: Setup Chrome and ChromeDriver
-        uses: ./.github/actions/setup-chrome
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@latest
       - name: Start XVFB
         run: Xvfb :99 &
       - name: Start Fluxbox
@@ -185,8 +185,11 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: '11'
-      - name: Setup Firefox and GeckoDriver
-        uses: ./.github/actions/setup-firefox
+      - name: Setup Firefox
+        uses: abhi1693/setup-browser@v0.3.4
+        with:
+          browser: firefox
+          version: latest
       - name: Start XVFB
         run: Xvfb :99 &
       - name: Start Fluxbox
@@ -227,8 +230,11 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: '11'
-      - name: Setup Firefox and GeckoDriver
-        uses: ./.github/actions/setup-firefox
+      - name: Setup Firefox
+        uses: abhi1693/setup-browser@v0.3.4
+        with:
+          browser: firefox
+          version: latest
       - name: Start Xvfb
         run: Xvfb :99 &
       - name: Start Fluxbox
