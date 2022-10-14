@@ -97,6 +97,7 @@ jobs:
         uses: ./.github/actions/bazel
         with:
           command: test --test_output=all //rb:${{ matrix.target }}
+          attempts: 3
         env:
           DISPLAY: :99
 
@@ -145,6 +146,7 @@ jobs:
         uses: ./.github/actions/bazel
         with:
           command: test --test_output=all //rb:${{ matrix.target }}
+          attempts: 3
         env:
           DISPLAY: :99
 
