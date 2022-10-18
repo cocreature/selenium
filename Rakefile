@@ -114,6 +114,7 @@ JAVA_RELEASE_TARGETS = %w[
   //java/src/org/openqa/selenium/remote/http/jdk:jdk.publish
   //java/src/org/openqa/selenium/remote/http:http.publish
   //java/src/org/openqa/selenium/remote:remote.publish
+  //java/src/org/openqa/selenium/manager:manager.publish
   //java/src/org/openqa/selenium/safari:safari.publish
   //java/src/org/openqa/selenium/support:support.publish
   //java/src/org/openqa/selenium:client-combined.publish

@@ -41,9 +41,6 @@ java_library(
     resources = [
         ":get-attribute",
         ":is-displayed",
-        ":manager-linux",
-        ":manager-macos",
-        ":manager-windows",
     ],
     visibility = [
         "//java/src/org/openqa/selenium/devtools:__pkg__",
@@ -56,6 +53,7 @@ java_library(
         "//java/src/org/openqa/selenium/devtools",
         "//java/src/org/openqa/selenium/io",
         "//java/src/org/openqa/selenium/json",
+        "//java/src/org/openqa/selenium/manager",
         "//java/src/org/openqa/selenium/os",
         "//java/src/org/openqa/selenium/remote/http/netty",
         "//java/src/org/openqa/selenium/remote/tracing",
@@ -75,22 +73,4 @@ copy_file(
     name = "is-displayed",
     src = "//javascript/atoms/fragments:is-displayed.js",
     out = "isDisplayed.js",
-)
-
-copy_file(
-    name = "manager-linux",
-    src = "//common/manager:linux/selenium-manager",
-    out = "service/linux/selenium-manager",
-)
-
-copy_file(
-    name = "manager-windows",
-    src = "//common/manager:windows/selenium-manager.exe",
-    out = "service/windows/selenium-manager.exe",
-)
-
-copy_file(
-    name = "manager-macos",
-    src = "//common/manager:macos/selenium-manager",
-    out = "service/macos/selenium-manager",
 )

@@ -17,22 +17,17 @@
 
 package org.openqa.selenium.remote.service;
 
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static java.util.Collections.emptyMap;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.openqa.selenium.Platform.MAC;
-import static org.openqa.selenium.Platform.WINDOWS;
 import static org.openqa.selenium.concurrent.ExecutorServices.shutdownGracefully;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 
-import com.google.common.io.CharStreams;
 import org.openqa.selenium.Beta;
 import org.openqa.selenium.Capabilities;
-import org.openqa.selenium.Platform;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.internal.Require;
+import org.openqa.selenium.manager.SeleniumManager;
 import org.openqa.selenium.net.PortProber;
 import org.openqa.selenium.net.UrlChecker;
 import org.openqa.selenium.os.CommandLine;
@@ -42,14 +37,10 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.Files;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -59,7 +50,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Logger;
 
 /**
  * Manages the life and death of a native executable driver server.
@@ -72,16 +62,8 @@ import java.util.logging.Logger;
  */
 public class DriverService implements Closeable {
 
-  private static final Logger LOG = Logger.getLogger(DriverService.class.getName());
-
   private static final String NAME = "Driver Service Executor";
   protected static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(20);
-
-  protected static final String SELENIUM_MANAGER = "selenium-manager";
-  protected static final String EXE = ".exe";
-  protected static final String INFO = "INFO\t";
-
-  protected static File seleniumManager;
 
   private final ExecutorService executorService = Executors.newFixedThreadPool(2, r -> {
     Thread thread = new Thread(r);
@@ -134,49 +116,6 @@ public class DriverService implements Closeable {
    this.url = getUrl(port);
  }
 
-  protected static String runCommand(String... command) {
-    String output = "";
-    try {
-      Process process = new ProcessBuilder(command)
-        .redirectErrorStream(false).start();
-      process.waitFor();
-      output = CharStreams.toString(new InputStreamReader(
-        process.getInputStream(), Charsets.UTF_8));
-    } catch (Exception e) {
-      LOG.warning(String.format("%s running command %s: %s",
-              e.getClass(), Arrays.toString(command), e.getMessage()));
-    }
-    return output.trim();
-  }
-
-  protected static File getSeleniumManager() {
-    if (seleniumManager == null) {
-      try {
-        Platform current = Platform.getCurrent();
-        String folder = "linux";
-        String extension = "";
-        if (current.is(WINDOWS)) {
-          extension = EXE;
-          folder = "windows";
-        } else if (current.is(MAC)) {
-          folder = "mac";
-        }
-        String binary = String.format("%s/%s%s", folder, SELENIUM_MANAGER, extension);
-        try (InputStream inputStream = DriverService.class.getResourceAsStream(binary)) {
-          File tempFolder = Files.createTempDirectory(SELENIUM_MANAGER).toFile();
-          tempFolder.deleteOnExit();
-          seleniumManager = new File(tempFolder, SELENIUM_MANAGER + extension);
-          Files.copy(inputStream, seleniumManager.toPath(), REPLACE_EXISTING);
-        }
-        seleniumManager.setExecutable(true);
-      } catch (Exception e) {
-        LOG.warning(String.format("%s getting Selenium Manager: %s",
-                e.getClass(), e.getMessage()));
-      }
-    }
-    return seleniumManager;
-  }
-
   /**
    *
    * @param exeName Name of the executable file to look for in PATH
@@ -196,14 +135,7 @@ public class DriverService implements Closeable {
     String exePath = System.getProperty(exeProperty, defaultPath);
 
     if (exePath == null) {
-      File seleniumManager = getSeleniumManager();
-      if (seleniumManager != null) {
-        String output = runCommand(seleniumManager.getAbsolutePath(),
-                "--driver", exeName.replaceAll(EXE, ""));
-        if (output.startsWith(INFO)) {
-          exePath = output.replace(INFO, "");
-        }
-      }
+      exePath = SeleniumManager.getInstance().getDriverPath(exeName);
     }
 
     Require.state("The path to the driver executable", exePath).nonNull(
