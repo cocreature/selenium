@@ -20,10 +20,11 @@ exports_files(
         "windows/selenium-manager.exe",
     ],
     visibility = [
+        "//java/src/org/openqa/selenium/remote:__pkg__",
         "//java/test/org/openqa/selenium/chrome:__pkg__",
         "//java/test/org/openqa/selenium/edge:__pkg__",
         "//java/test/org/openqa/selenium/firefox:__pkg__",
         "//py:__pkg__",
         "//rb:__pkg__",
-  ],
+    ],
 )
